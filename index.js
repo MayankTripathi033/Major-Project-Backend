@@ -13,11 +13,16 @@ import { createPost } from "./Controllers/posts.js";
 import authRoutes from "./routes/auth.js";
 import userRoutes from "./routes/users.js";
 import postRoutes from "./routes/posts.js";
+// import chatRoutes from "./routes/chat.js";
 import { verifyToken } from "./middleware/auth.js";
 import Post from "./models/Post.js";
 import User from "./models/User.js";
 import { posts, users } from "./data/index.js";
+import createServer from "http";
 import colors from "colors";
+import { Server } from "socket.io";
+import chat from "./models/chat.js";
+import http from "http";
 
 /* Dotenv*/
 dotenv.config();
@@ -26,6 +31,13 @@ dotenv.config();
 const app = express();
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+const server = http.createServer(app);
+const io = new Server(server, {
+  cors: {
+    origin: "*",
+    methods: ["GET", "POST"],
+  },
+});
 app.use(express.json());
 app.use(helmet());
 app.use(helmet.crossOriginResourcePolicy({ policy: "cross-origin" }));
@@ -50,13 +62,11 @@ const upload = multer({ storage });
 /*File Routes*/
 app.post("/auth/register", upload.single("picture"), verifyToken, Register);
 app.post("/posts", verifyToken, upload.single("picture"), createPost);
-// app.post("/auth/register", upload.single("picture"), verifyToken, login);
 
 /* Routes */
 app.use("/auth", authRoutes);
 app.use("/users", userRoutes);
 app.use("/posts", postRoutes);
-
 /*Moongoose Setup */
 const PORT = process.env.PORT || 6001;
 console.log(process.env.MONGO_URL);
@@ -80,3 +90,9 @@ mongoose
   .catch((error) => {
     console.log(`${error} did not connect`);
   });
+
+/*Chat Application */
+io.on("connection", async (socket) => {
+  console.log(JSON.stringify(socket.handshake.query));
+  const user_id = socket.handshake.query["user.id"];
+});
